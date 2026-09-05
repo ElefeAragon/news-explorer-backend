@@ -18,8 +18,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const { MONGO_URI } = require("./utils/config");
+
 mongoose
-  .connect("mongodb://127.0.0.1:27017/newsexplorerdb")
+  .connect(MONGO_URI)
   .then(() => console.log("Conectado a MongoDB"))
   .catch((err) => console.error("Error al conectar a MongoDB:", err));
 

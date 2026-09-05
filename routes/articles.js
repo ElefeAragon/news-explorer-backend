@@ -1,16 +1,16 @@
-const router = require("express").Router();
-const { celebrate, Joi } = require("celebrate");
-const auth = require("../middlewares/auth");
+const router = require('express').Router();
+const { celebrate, Joi } = require('celebrate');
+const auth = require('../middlewares/auth');
 const {
   getArticles,
   createArticle,
   deleteArticle,
-} = require("../controllers/articles");
+} = require('../controllers/articles');
 
-router.get("/", auth, getArticles);
+router.get('/', auth, getArticles);
 
 router.post(
-  "/",
+  '/',
   auth,
   celebrate({
     body: Joi.object().keys({
@@ -27,7 +27,7 @@ router.post(
 );
 
 router.delete(
-  "/:articleId",
+  '/:articleId',
   auth,
   celebrate({
     params: Joi.object().keys({

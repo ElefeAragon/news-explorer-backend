@@ -1,4 +1,5 @@
 const Article = require('../models/article');
+const { NotFoundError, ForbiddenError } = require('../utils/errors');
 
 module.exports.getArticles = (req, res, next) => {
   Article.find({ owner: req.user._id })
@@ -22,12 +23,7 @@ module.exports.createArticle = (req, res, next) => {
     owner: req.user._id,
   })
     .then((article) => res.status(201).send(article))
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        return res.status(400).send({ message: err.message });
-      }
-      return next(err);
-    });
+    .catch(next);
 };
 
 module.exports.deleteArticle = (req, res, next) => {
@@ -35,13 +31,13 @@ module.exports.deleteArticle = (req, res, next) => {
     .select('+owner')
     .then((article) => {
       if (!article) {
-        return res.status(404).send({ message: 'Artículo no encontrado' });
+        return Promise.reject(new NotFoundError('Artículo no encontrado'));
       }
 
       if (article.owner.toString() !== req.user._id) {
-        return res
-          .status(403)
-          .send({ message: 'No puedes eliminar artículos de otro usuario' });
+        return Promise.reject(
+          new ForbiddenError('No puedes eliminar artículos de otro usuario'),
+        );
       }
 
       return Article.findByIdAndDelete(req.params.articleId).then(() => res.send({ message: 'Artículo eliminado' }));

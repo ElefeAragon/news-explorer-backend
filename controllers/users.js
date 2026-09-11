@@ -2,6 +2,12 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const { JWT_SECRET } = require('../utils/config');
+const {
+  ConflictError,
+  BadRequestError,
+  UnauthorizedError,
+  NotFoundError,
+} = require('../utils/errors');
 
 const SALT_ROUNDS = 10;
 
@@ -18,28 +24,28 @@ module.exports.createUser = (req, res, next) => {
     }))
     .catch((err) => {
       if (err.code === 11000) {
-        return res.status(409).send({ message: 'Este correo ya está registrado' });
+        return next(new ConflictError('Este correo ya está registrado'));
       }
       if (err.name === 'ValidationError') {
-        return res.status(400).send({ message: err.message });
+        return next(new BadRequestError(err.message));
       }
       return next(err);
     });
 };
 
-module.exports.login = (req, res) => {
+module.exports.login = (req, res, next) => {
   const { email, password } = req.body;
 
   User.findOne({ email })
     .select('+password')
     .then((user) => {
       if (!user) {
-        return Promise.reject(new Error('Correo o contraseña incorrectos'));
+        return Promise.reject(new UnauthorizedError('Correo o contraseña incorrectos'));
       }
 
       return bcrypt.compare(password, user.password).then((matched) => {
         if (!matched) {
-          return Promise.reject(new Error('Correo o contraseña incorrectos'));
+          return Promise.reject(new UnauthorizedError('Correo o contraseña incorrectos'));
         }
 
         const token = jwt.sign({ _id: user._id }, JWT_SECRET, {
@@ -49,14 +55,14 @@ module.exports.login = (req, res) => {
         return res.send({ token });
       });
     })
-    .catch(() => res.status(401).send({ message: 'Correo o contraseña incorrectos' }));
+    .catch(next);
 };
 
 module.exports.getCurrentUser = (req, res, next) => {
   User.findById(req.user._id)
     .then((user) => {
       if (!user) {
-        return res.status(404).send({ message: 'Usuario no encontrado' });
+        return Promise.reject(new NotFoundError('Usuario no encontrado'));
       }
       return res.send({ email: user.email, name: user.name });
     })
